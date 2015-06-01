@@ -5,6 +5,17 @@ namespace :resque_delayed do
 
   desc "Start a Resque::Delayed worker"
   task :work do
+    ENV['REDIS_URL'] ||= 'redis://localhost:6379/'
+    uri = URI.parse(ENV['REDIS_URL'])
+
+    if ENV['REDIS_PASSWORD']
+      redis_client = Redis.new(:host => uri.host, :port => uri.port, :thread_safe => true, :password => ENV['REDIS_PASSWORD'])
+    else
+      redis_client = Redis.new(:host => uri.host, :port => uri.port, :thread_safe => true)
+    end
+
+    Resque.redis = redis_client
+
     unless Resque.redis.instance_variable_get(:@redis).zcard("").zero?
       STDERR.puts %Q{
 WARNING: you have a sorted set stored at the empty string key in your redis instance
